@@ -1,0 +1,31 @@
+{
+    "description": "NVIDIA Blackwell B200",
+    "gemm": {
+        "fp16": 2304.0,
+        "bf16": 2304.0,
+        "tf32": 1152.0,
+        "fp8_e4m3": 4068.0,
+        "fp8_e5m2": 4068.0,
+        "int8": 4068.0,
+        "fp64": 37.0,
+        "fp32": 75.0
+    },
+    "stream": {
+    "copy": 8000.0,
+    "scale": 8000.0,
+    "add": 8000.0,
+    "triad": 8000.0
+  },
+  "nccl":{
+	  "all_reduce":800.0,
+	  "alltoall":600.0
+  },
+  "nvbandwidth": {
+        "host_to_device_memcpy_ce": 64.0,
+        "device_to_host_memcpy_ce": 64.0,
+        "all_to_host_memcpy_ce": 64.0,
+        "host_to_all_memcpy_ce": 64.0,
+        "device_to_device_bidirectional_memcpy_read_ce": 1800.0,
+        "device_to_device_bidirectional_memcpy_write_ce": 1800.0
+    }
+}
