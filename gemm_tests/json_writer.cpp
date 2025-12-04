@@ -12,6 +12,29 @@
 
 using json = nlohmann::ordered_json;
 
+// === 新增辅助函数：根据设备名称动态生成 Spec 文件名 ===
+std::string detect_spec_filename(std::string device_name) {
+    // 1. 定义已知的高频型号列表 (可以按需补充)
+    // 注意：顺序很重要，如果名字里同时包含多个关键词，前面的优先
+    std::vector<std::string> known_models = {
+        "B200", "B300", "GB200", "GB300", "H100", "H200", "H20", "H800", "A100", "A800", "5090",		
+        "4090", "3090", "L40", "T4", "V100"
+    };
+
+    for (const auto& model : known_models) {
+        if (device_name.find(model) != std::string::npos) {
+            // 找到匹配型号，例如 "H100" -> "H100_specs.json"
+            return model + "_specs.json";
+        }
+    }
+
+    // 2. 兜底策略：如果不在列表中，使用全名，但把空格换成下划线
+    // 例如 "NVIDIA GeForce RTX 5090" -> "NVIDIA_GeForce_RTX_5090_specs.json"
+    std::string safe_name = device_name;
+    std::replace(safe_name.begin(), safe_name.end(), ' ', '_');
+    return safe_name + "_specs.json";
+}
+
 // === 1. 智能读取驱动版本 (保持不变) ===
 std::string get_driver_version_smart() {
     std::string version = "Unknown";
@@ -35,7 +58,10 @@ std::string get_driver_version_smart() {
 // === 2. 性能达标检查 (保持不变) ===
 std::pair<std::string, double> check_performance_status(const std::string& spec_filename, const std::string& dtype, double measured_tflops) {
     std::ifstream f(spec_filename);
-    if (!f.is_open()) return {"Spec File Not Found", 0.0};
+    if (!f.is_open()) {
+        // 返回明确的错误信息，方便 Debug
+        return {"Spec File Not Found (" + spec_filename + ")", 0.0};
+    }
 
     try {
         json specs = json::parse(f);
@@ -55,12 +81,17 @@ std::pair<std::string, double> check_performance_status(const std::string& spec_
     }
 }
 
-// === 3. 生成 JSON 对象 (原 write_result_json 的核心逻辑) ===
+// === 3. 生成 JSON 对象 (核心修改区域) ===
 json get_result_json(int M, int N, int K, const std::string& dtype,
                      float ms, int iters, int device,
                      const cudaDeviceProp& prop, double tflops) {
 
-    std::string target_spec_file = "B200_specs.json"; 
+    // [修改点]：不再硬编码 "B200_specs.json"
+    // 而是通过 prop.name 动态获取
+    std::string target_spec_file = detect_spec_filename(prop.name);
+    
+    // 如果你想在控制台确认它在找哪个文件，可以取消下面这行的注释
+    // std::cout << "Debug: Looking for spec file: " << target_spec_file << std::endl;
 
     // 获取驱动版本
     std::string driver_str = get_driver_version_smart();
@@ -91,7 +122,8 @@ json get_result_json(int M, int N, int K, const std::string& dtype,
     j["configuration"]["data_type"] = dtype;
     
     j["gpu_info"]["index"] = device;
-    j["gpu_info"]["name"] = prop.name;
+    j["gpu_info"]["name"] = prop.name; // 原始名称，例如 "NVIDIA H100 80GB HBM3"
+    j["gpu_info"]["target_spec_file"] = target_spec_file; // [可选] 记录实际使用的 spec 文件名
     j["gpu_info"]["compute_capability"] = cc;
     j["gpu_info"]["driver_version"] = driver_str;
 
@@ -110,14 +142,12 @@ json get_result_json(int M, int N, int K, const std::string& dtype,
         j["performance"]["percent_of_spec"] = (tflops / spec_val) * 100.0;
     }
     
-    // 这里不再写入文件，而是返回对象
     return j;
 }
 
-// === 4. 批量保存函数 ===
+// === 4. 批量保存函数 (保持不变) ===
 void save_all_results(const std::vector<json>& results, const std::string& filename) {
     std::ofstream o(filename);
-    // 输出为一个 JSON 数组
     o << std::setw(4) << results << std::endl;
     o.close();
     std::cout << "All results saved to " << filename << " (Total GPUs: " << results.size() << ")" << std::endl;

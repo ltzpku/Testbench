@@ -16,7 +16,7 @@ using json = nlohmann::ordered_json;
 // Global variable to store all bandwidth samples for the current test
 static std::vector<double> g_bw_samples;
 
-// Configuration: Pass threshold is 90% of the Spec value
+// Configuration: Pass threshold is 90% of the Spec value (根据你原来的逻辑保留 0.8 或者改成 0.9)
 static const double PASS_THRESHOLD_RATIO = 0.80;
 
 void nvbandwidth_init_bw_tracker() {
@@ -25,6 +25,32 @@ void nvbandwidth_init_bw_tracker() {
 
 void nvbandwidth_record_bw(double bus_bw) {
     g_bw_samples.push_back(bus_bw);
+}
+
+// === 新增：根据设备名称动态生成 Spec 文件名 ===
+std::string detect_spec_filename(std::string device_name) {
+    // 1. 定义已知的高频型号列表 (按照你的需求更新列表)
+    // 优先匹配更具体的型号
+    std::vector<std::string> known_models = {
+        "B200", "B300", "GB200", "GB300", 
+        "H100", "H200", "H20", "H800", 
+        "A100", "A800", 
+        "5090", "4090", "3090", 
+        "L40", "T4", "V100"
+    };
+
+    for (const auto& model : known_models) {
+        if (device_name.find(model) != std::string::npos) {
+            // 找到匹配型号，例如 "H100" -> "H100_specs.json"
+            return model + "_specs.json";
+        }
+    }
+
+    // 2. 兜底策略：如果不在列表中，使用全名，但把空格换成下划线
+    // 例如 "NVIDIA GeForce RTX 6000 Ada" -> "NVIDIA_GeForce_RTX_6000_Ada_specs.json"
+    std::string safe_name = device_name;
+    std::replace(safe_name.begin(), safe_name.end(), ' ', '_');
+    return safe_name + "_specs.json";
 }
 
 // Helper: Get Driver Version
@@ -63,24 +89,23 @@ static std::string to_lower(const std::string& str) {
 }
 
 // Check performance against spec
-static std::pair<std::string, double> check_performance(const std::string& spec_filename, 
-                                                        const std::string& test_name, 
+static std::pair<std::string, double> check_performance(const std::string& spec_filename,
+                                                        const std::string& test_name,
                                                         double avg_bw) {
     std::ifstream f(spec_filename);
-    if (!f.is_open()) return {"Spec File Not Found", 0.0};
+    if (!f.is_open()) {
+        // [优化] 返回具体找不到的文件名，方便排查
+        return {"Spec File Not Found (" + spec_filename + ")", 0.0};
+    }
 
     try {
         json specs = json::parse(f);
         std::string lower_name = to_lower(test_name);
 
-        // Logic: Look for "nvbandwidth" block, fallback to "nccl" or root if needed. 
-        // Assuming structure similar to: { "nvbandwidth": { "host_to_device...": 100.0 } }
-        // Or if the user puts them in the same "nccl" block or root, adjust here.
-        // For now, checking root or "nvbandwidth" key.
-        
         double spec_val = 0.0;
         bool found = false;
 
+        // Logic: Support structure { "nvbandwidth": { ... } } or flat structure
         if (specs.contains("nvbandwidth") && specs["nvbandwidth"].contains(lower_name)) {
             spec_val = specs["nvbandwidth"][lower_name];
             found = true;
@@ -112,12 +137,13 @@ void nvbandwidth_write_json(const std::string& test_name, const std::vector<int>
     // 2. Get Device Info (Representative)
     int representative_device = 0;
     if (!gpu_indices.empty()) representative_device = gpu_indices[0];
-    
+
     cudaDeviceProp prop;
     cudaGetDeviceProperties(&prop, representative_device);
 
+    // [修改点] 动态获取 specs 文件名，不再硬编码 "B200_specs.json"
+    std::string spec_file = detect_spec_filename(prop.name);
     const std::string filename = "nvbandwidth_result.json";
-    const std::string spec_file = "B200_specs.json";
 
     std::string driver_str = get_driver_version_smart();
     std::string cc = std::to_string(prop.major) + "." + std::to_string(prop.minor);
@@ -131,9 +157,10 @@ void nvbandwidth_write_json(const std::string& test_name, const std::vector<int>
     json j_entry;
     j_entry["test_name"] = test_name;
     j_entry["status"] = status;
-    
+
     j_entry["gpu_info"]["index"] = gpu_indices;
     j_entry["gpu_info"]["name"] = prop.name;
+    j_entry["gpu_info"]["target_spec_file"] = spec_file; // [新增] 记录实际使用的 specs 文件，方便 Debug
     j_entry["gpu_info"]["compute_capability"] = cc;
     j_entry["gpu_info"]["driver_version"] = driver_str;
 
@@ -160,6 +187,7 @@ void nvbandwidth_write_json(const std::string& test_name, const std::vector<int>
     }
     ifile.close();
 
+
     if (!j_root.is_array()) {
         json temp = json::array();
         temp.push_back(j_root);
@@ -172,6 +200,6 @@ void nvbandwidth_write_json(const std::string& test_name, const std::vector<int>
     o << std::setw(4) << j_root << std::endl;
     o.close();
 
-    std::cout << ">> [JSON Writer] " << test_name << " Avg BW: " << avg_bw 
-              << " GB/s saved to " << filename << " (Status: " << status << ")" << std::endl;
+    std::cout << ">> [JSON Writer] " << test_name << " Avg BW: " << avg_bw
+              << " GB/s saved to " << filename << " (Spec: " << spec_file << ", Status: " << status << ")" << std::endl;
 }

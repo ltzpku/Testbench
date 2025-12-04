@@ -7,6 +7,7 @@
         "gpu_info": {
             "index": 0,
             "name": "NVIDIA B200",
+            "target_spec_file": "B200_specs.json",
             "compute_capability": "10.0",
             "driver_version": "570.148.08"
         },
@@ -18,10 +19,10 @@
             "l_batch": 1
         },
         "performance": {
-            "tflops": 2065.5646519071106,
+            "tflops": 2064.0545044286596,
             "spec_tflops": 2304.0,
             "threshold_75pct": 1728.0,
-            "percent_of_spec": 89.65124357235723
+            "percent_of_spec": 89.58569897693836
         }
     },
     {
@@ -32,6 +33,7 @@
         "gpu_info": {
             "index": 1,
             "name": "NVIDIA B200",
+            "target_spec_file": "B200_specs.json",
             "compute_capability": "10.0",
             "driver_version": "570.148.08"
         },
@@ -43,10 +45,10 @@
             "l_batch": 1
         },
         "performance": {
-            "tflops": 2081.3438030854177,
+            "tflops": 2077.2380305151764,
             "spec_tflops": 2304.0,
             "threshold_75pct": 1728.0,
-            "percent_of_spec": 90.33610256447126
+            "percent_of_spec": 90.15790062999898
         }
     },
     {
@@ -57,6 +59,7 @@
         "gpu_info": {
             "index": 2,
             "name": "NVIDIA B200",
+            "target_spec_file": "B200_specs.json",
             "compute_capability": "10.0",
             "driver_version": "570.148.08"
         },
@@ -68,10 +71,10 @@
             "l_batch": 1
         },
         "performance": {
-            "tflops": 2053.1246642169754,
+            "tflops": 2045.2942526744089,
             "spec_tflops": 2304.0,
             "threshold_75pct": 1728.0,
-            "percent_of_spec": 89.11131355108401
+            "percent_of_spec": 88.77145193899344
         }
     },
     {
@@ -82,6 +85,7 @@
         "gpu_info": {
             "index": 3,
             "name": "NVIDIA B200",
+            "target_spec_file": "B200_specs.json",
             "compute_capability": "10.0",
             "driver_version": "570.148.08"
         },
@@ -93,10 +97,10 @@
             "l_batch": 1
         },
         "performance": {
-            "tflops": 2038.0721708426402,
+            "tflops": 2052.01743062201,
             "spec_tflops": 2304.0,
             "threshold_75pct": 1728.0,
-            "percent_of_spec": 88.45799352615626
+            "percent_of_spec": 89.06325653741364
         }
     },
     {
@@ -107,6 +111,7 @@
         "gpu_info": {
             "index": 4,
             "name": "NVIDIA B200",
+            "target_spec_file": "B200_specs.json",
             "compute_capability": "10.0",
             "driver_version": "570.148.08"
         },
@@ -118,10 +123,10 @@
             "l_batch": 1
         },
         "performance": {
-            "tflops": 2062.1568975515756,
+            "tflops": 2052.8031967630927,
             "spec_tflops": 2304.0,
             "threshold_75pct": 1728.0,
-            "percent_of_spec": 89.50333756734268
+            "percent_of_spec": 89.09736097062034
         }
     },
     {
@@ -132,6 +137,7 @@
         "gpu_info": {
             "index": 5,
             "name": "NVIDIA B200",
+            "target_spec_file": "B200_specs.json",
             "compute_capability": "10.0",
             "driver_version": "570.148.08"
         },
@@ -143,10 +149,10 @@
             "l_batch": 1
         },
         "performance": {
-            "tflops": 2023.4820272341349,
+            "tflops": 2002.6448342792532,
             "spec_tflops": 2304.0,
             "threshold_75pct": 1728.0,
-            "percent_of_spec": 87.82474076537044
+            "percent_of_spec": 86.92034871003703
         }
     },
     {
@@ -157,6 +163,7 @@
         "gpu_info": {
             "index": 6,
             "name": "NVIDIA B200",
+            "target_spec_file": "B200_specs.json",
             "compute_capability": "10.0",
             "driver_version": "570.148.08"
         },
@@ -168,10 +175,10 @@
             "l_batch": 1
         },
         "performance": {
-            "tflops": 1961.4947583979074,
+            "tflops": 1970.0623764245347,
             "spec_tflops": 2304.0,
             "threshold_75pct": 1728.0,
-            "percent_of_spec": 85.13432111102028
+            "percent_of_spec": 85.50617953231487
         }
     },
     {
@@ -182,6 +189,7 @@
         "gpu_info": {
             "index": 7,
             "name": "NVIDIA B200",
+            "target_spec_file": "B200_specs.json",
             "compute_capability": "10.0",
             "driver_version": "570.148.08"
         },
@@ -193,10 +201,10 @@
             "l_batch": 1
         },
         "performance": {
-            "tflops": 2038.3915184530808,
+            "tflops": 1985.9112219277215,
             "spec_tflops": 2304.0,
             "threshold_75pct": 1728.0,
-            "percent_of_spec": 88.47185409952608
+            "percent_of_spec": 86.19406345172402
         }
     }
 ]

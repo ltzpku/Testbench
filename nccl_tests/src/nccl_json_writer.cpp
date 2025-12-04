@@ -14,8 +14,6 @@ using json = nlohmann::ordered_json;
 // 全局静态变量，用于追踪最大带宽
 static double g_max_bus_bw = 0.0;
 
-// [已移除] static const double PASS_THRESHOLD_RATIO = 1.0; 
-
 void nccl_init_bw_tracker() {
     g_max_bus_bw = 0.0;
 }
@@ -24,6 +22,30 @@ void nccl_record_bw(double bus_bw) {
     if (bus_bw > g_max_bus_bw) {
         g_max_bus_bw = bus_bw;
     }
+}
+
+// === 新增：根据设备名称动态生成 Spec 文件名 ===
+std::string detect_nccl_spec_filename(std::string device_name) {
+    // 1. 定义已知的高频型号列表
+    std::vector<std::string> known_models = {
+        "B200", "B300", "GB200", "GB300", 
+        "H100", "H200", "H20", "H800", 
+        "A100", "A800", 
+        "5090", "4090", "3090", 
+        "L40", "T4", "V100"
+    };
+
+    for (const auto& model : known_models) {
+        if (device_name.find(model) != std::string::npos) {
+            // 找到匹配型号，例如 "H100" -> "H100_specs.json"
+            return model + "_specs.json";
+        }
+    }
+
+    // 2. 兜底策略：如果不在列表中，使用全名，但把空格换成下划线
+    std::string safe_name = device_name;
+    std::replace(safe_name.begin(), safe_name.end(), ' ', '_');
+    return safe_name + "_specs.json";
 }
 
 // --- 辅助函数：获取驱动版本 ---
@@ -66,7 +88,10 @@ static std::pair<std::string, double> check_nccl_performance(const std::string& 
                                                              double measured_bw,
                                                              double threshold_ratio) {
     std::ifstream f(spec_filename);
-    if (!f.is_open()) return {"Spec File Not Found", 0.0};
+    if (!f.is_open()) {
+        // [优化] 返回具体找不到的文件名，方便排查
+        return {"Spec File Not Found (" + spec_filename + ")", 0.0};
+    }
 
     try {
         json specs = json::parse(f);
@@ -103,9 +128,9 @@ void nccl_write_json(const std::string& test_name,
     cudaDeviceProp prop;
     cudaGetDeviceProperties(&prop, representative_device);
 
-    // 使用传入的文件名，不再硬编码 result.json
+    // [修改点] 动态获取 specs 文件名，不再硬编码 "B200_specs.json"
+    std::string spec_file = detect_nccl_spec_filename(prop.name);
     const std::string filename = output_filename;
-    const std::string spec_file = "B200_specs.json";
 
     std::string driver_str = get_driver_version_smart();
     std::string cc = std::to_string(prop.major) + "." + std::to_string(prop.minor);
@@ -121,6 +146,7 @@ void nccl_write_json(const std::string& test_name,
     j_entry["status"] = status;
     j_entry["gpu_info"]["index"] = gpu_indices; 
     j_entry["gpu_info"]["name"] = prop.name;
+    j_entry["gpu_info"]["target_spec_file"] = spec_file; // [新增] 记录实际使用的 specs 文件
     j_entry["gpu_info"]["compute_capability"] = cc;
     j_entry["gpu_info"]["driver_version"] = driver_str;
 
@@ -157,5 +183,7 @@ void nccl_write_json(const std::string& test_name,
     o << std::setw(4) << j_root << std::endl;
     o.close();
 
-    std::cout << ">> [JSON Writer] Max BusBW (" << g_max_bus_bw << " GB/s) saved to " << filename << " (Status: " << status << ", Threshold: " << (threshold_ratio*100) << "%)" << std::endl;
+    // 控制台输出增加 Spec 文件提示，方便调试
+    std::cout << ">> [JSON Writer] Max BusBW (" << g_max_bus_bw << " GB/s) saved to " << filename 
+              << " (Spec: " << spec_file << ", Status: " << status << ", Threshold: " << (threshold_ratio*100) << "%)" << std::endl;
 }
