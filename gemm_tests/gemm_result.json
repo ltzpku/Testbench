@@ -1,0 +1,202 @@
+[
+    {
+        "test_name": "fp16 GEMM",
+        "configuration": {
+            "data_type": "fp16"
+        },
+        "gpu_info": {
+            "index": 0,
+            "name": "NVIDIA B200",
+            "compute_capability": "10.0",
+            "driver_version": "570.148.08"
+        },
+        "status": "Passed",
+        "problem_size": {
+            "m": 8192,
+            "n": 8192,
+            "k": 8192,
+            "l_batch": 1
+        },
+        "performance": {
+            "tflops": 2065.5646519071106,
+            "spec_tflops": 2304.0,
+            "threshold_75pct": 1728.0,
+            "percent_of_spec": 89.65124357235723
+        }
+    },
+    {
+        "test_name": "fp16 GEMM",
+        "configuration": {
+            "data_type": "fp16"
+        },
+        "gpu_info": {
+            "index": 1,
+            "name": "NVIDIA B200",
+            "compute_capability": "10.0",
+            "driver_version": "570.148.08"
+        },
+        "status": "Passed",
+        "problem_size": {
+            "m": 8192,
+            "n": 8192,
+            "k": 8192,
+            "l_batch": 1
+        },
+        "performance": {
+            "tflops": 2081.3438030854177,
+            "spec_tflops": 2304.0,
+            "threshold_75pct": 1728.0,
+            "percent_of_spec": 90.33610256447126
+        }
+    },
+    {
+        "test_name": "fp16 GEMM",
+        "configuration": {
+            "data_type": "fp16"
+        },
+        "gpu_info": {
+            "index": 2,
+            "name": "NVIDIA B200",
+            "compute_capability": "10.0",
+            "driver_version": "570.148.08"
+        },
+        "status": "Passed",
+        "problem_size": {
+            "m": 8192,
+            "n": 8192,
+            "k": 8192,
+            "l_batch": 1
+        },
+        "performance": {
+            "tflops": 2053.1246642169754,
+            "spec_tflops": 2304.0,
+            "threshold_75pct": 1728.0,
+            "percent_of_spec": 89.11131355108401
+        }
+    },
+    {
+        "test_name": "fp16 GEMM",
+        "configuration": {
+            "data_type": "fp16"
+        },
+        "gpu_info": {
+            "index": 3,
+            "name": "NVIDIA B200",
+            "compute_capability": "10.0",
+            "driver_version": "570.148.08"
+        },
+        "status": "Passed",
+        "problem_size": {
+            "m": 8192,
+            "n": 8192,
+            "k": 8192,
+            "l_batch": 1
+        },
+        "performance": {
+            "tflops": 2038.0721708426402,
+            "spec_tflops": 2304.0,
+            "threshold_75pct": 1728.0,
+            "percent_of_spec": 88.45799352615626
+        }
+    },
+    {
+        "test_name": "fp16 GEMM",
+        "configuration": {
+            "data_type": "fp16"
+        },
+        "gpu_info": {
+            "index": 4,
+            "name": "NVIDIA B200",
+            "compute_capability": "10.0",
+            "driver_version": "570.148.08"
+        },
+        "status": "Passed",
+        "problem_size": {
+            "m": 8192,
+            "n": 8192,
+            "k": 8192,
+            "l_batch": 1
+        },
+        "performance": {
+            "tflops": 2062.1568975515756,
+            "spec_tflops": 2304.0,
+            "threshold_75pct": 1728.0,
+            "percent_of_spec": 89.50333756734268
+        }
+    },
+    {
+        "test_name": "fp16 GEMM",
+        "configuration": {
+            "data_type": "fp16"
+        },
+        "gpu_info": {
+            "index": 5,
+            "name": "NVIDIA B200",
+            "compute_capability": "10.0",
+            "driver_version": "570.148.08"
+        },
+        "status": "Passed",
+        "problem_size": {
+            "m": 8192,
+            "n": 8192,
+            "k": 8192,
+            "l_batch": 1
+        },
+        "performance": {
+            "tflops": 2023.4820272341349,
+            "spec_tflops": 2304.0,
+            "threshold_75pct": 1728.0,
+            "percent_of_spec": 87.82474076537044
+        }
+    },
+    {
+        "test_name": "fp16 GEMM",
+        "configuration": {
+            "data_type": "fp16"
+        },
+        "gpu_info": {
+            "index": 6,
+            "name": "NVIDIA B200",
+            "compute_capability": "10.0",
+            "driver_version": "570.148.08"
+        },
+        "status": "Passed",
+        "problem_size": {
+            "m": 8192,
+            "n": 8192,
+            "k": 8192,
+            "l_batch": 1
+        },
+        "performance": {
+            "tflops": 1961.4947583979074,
+            "spec_tflops": 2304.0,
+            "threshold_75pct": 1728.0,
+            "percent_of_spec": 85.13432111102028
+        }
+    },
+    {
+        "test_name": "fp16 GEMM",
+        "configuration": {
+            "data_type": "fp16"
+        },
+        "gpu_info": {
+            "index": 7,
+            "name": "NVIDIA B200",
+            "compute_capability": "10.0",
+            "driver_version": "570.148.08"
+        },
+        "status": "Passed",
+        "problem_size": {
+            "m": 8192,
+            "n": 8192,
+            "k": 8192,
+            "l_batch": 1
+        },
+        "performance": {
+            "tflops": 2038.3915184530808,
+            "spec_tflops": 2304.0,
+            "threshold_75pct": 1728.0,
+            "percent_of_spec": 88.47185409952608
+        }
+    }
+]

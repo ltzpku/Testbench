@@ -17,8 +17,8 @@
     "triad": 8000.0
   },
   "nccl":{
-	  "all_reduce":800.0,
-	  "alltoall":600.0
+	  "all_reduce":900.0,
+	  "alltoall":900.0
   },
   "nvbandwidth": {
         "host_to_device_memcpy_ce": 64.0,

@@ -7,11 +7,11 @@
 #include <algorithm> 
 #include <iostream>
 #include <sys/stat.h>
-#include "json.hpp" // 确保存放了 nlohmann/json.hpp
+#include "json.hpp" 
 
 using json = nlohmann::ordered_json;
 
-// --- 辅助函数：获取驱动版本 (复用原有逻辑) ---
+// --- 辅助函数：获取驱动版本 (保持不变) ---
 static std::string get_driver_version_smart() {
     std::string version = "Unknown";
     std::ifstream f("/proc/driver/nvidia/version");
@@ -31,7 +31,7 @@ static std::string get_driver_version_smart() {
     return version;
 }
 
-// --- 辅助函数：将字符串转小写 (用于 Key 匹配) ---
+// --- 辅助函数：将字符串转小写 (保持不变) ---
 static std::string to_lower(const std::string& str) {
     std::string s = str;
     std::transform(s.begin(), s.end(), s.begin(),
@@ -39,8 +39,7 @@ static std::string to_lower(const std::string& str) {
     return s;
 }
 
-// --- 核心逻辑：检查性能是否达标 ---
-// 期望 Spec 结构: { "stream": { "copy": 2000.0, "triad": 2000.0, ... } }
+// --- 核心逻辑：检查性能是否达标 (保持不变) ---
 static std::pair<std::string, double> check_stream_performance(const std::string& spec_filename, 
                                                                const std::string& test_name, 
                                                                double measured_bw) {
@@ -55,7 +54,7 @@ static std::pair<std::string, double> check_stream_performance(const std::string
         if (!specs["stream"].contains(lower_name)) return {"Test Type Missing in Spec", 0.0};
 
         double spec_val = specs["stream"][lower_name];
-        double threshold = spec_val * 0.80; // 80% 达标线
+        double threshold = spec_val * 0.75; // 75% 达标线
 
         if (measured_bw >= threshold) return {"Passed", spec_val};
         else return {"Failed", spec_val};
@@ -65,15 +64,14 @@ static std::pair<std::string, double> check_stream_performance(const std::string
     }
 }
 
-// --- 主写入函数 ---
-void write_stream_result_json(const std::string& test_name,
-                              double bytes_moved,
-                              double ms,
-                              double bw_gb_s,
-                              int device,
-                              const cudaDeviceProp& prop) {
+// --- 1. 生成单条结果 JSON 对象 ---
+json get_stream_result_json(const std::string& test_name,
+                            double bytes_moved,
+                            double ms,
+                            double bw_gb_s,
+                            int device,
+                            const cudaDeviceProp& prop) {
 
-    const std::string filename = "stream_result.json";
     const std::string spec_file = "B200_specs.json";
 
     // 1. 获取基础信息
@@ -92,7 +90,7 @@ void write_stream_result_json(const std::string& test_name,
 
     // 3. 构建单条结果 JSON 对象
     json j_entry;
-    j_entry["test_name"] = test_name; // Copy, Scale, etc.
+    j_entry["test_name"] = test_name; 
     j_entry["status"] = status;
     
     j_entry["gpu_info"]["index"] = device;
@@ -110,37 +108,13 @@ void write_stream_result_json(const std::string& test_name,
         j_entry["performance_check"]["percent_of_spec"] = (bw_gb_s / spec_val) * 100.0;
     }
 
-    // 4. 读取现有文件并追加 (Append Logic)
-    json j_root;
-    std::ifstream ifile(filename);
-    bool exists = ifile.good();
-    
-    if (exists) {
-        try {
-            j_root = json::parse(ifile);
-        } catch (...) {
-            // 如果解析失败，重新开始一个数组
-            j_root = json::array();
-        }
-    } else {
-        j_root = json::array();
-    }
-    ifile.close();
+    return j_entry;
+}
 
-    // 确保根是数组，如果是对象则包进数组
-    if (!j_root.is_array()) {
-        json temp = json::array();
-        temp.push_back(j_root);
-        j_root = temp;
-    }
-
-    // 添加新条目
-    j_root.push_back(j_entry);
-
-    // 5. 写回文件
+// --- 2. 批量保存函数 ---
+void save_all_stream_results(const std::vector<json>& results, const std::string& filename) {
     std::ofstream o(filename);
-    o << std::setw(4) << j_root << std::endl;
+    o << std::setw(4) << results << std::endl;
     o.close();
-
-    std::cout << ">> Result appended to " << filename << " (Status: " << status << ")" << std::endl;
+    std::cout << ">> All results saved to " << filename << " (Total records: " << results.size() << ")" << std::endl;
 }

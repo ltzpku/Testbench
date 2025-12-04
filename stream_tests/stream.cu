@@ -6,8 +6,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <getopt.h>
+#include <vector> // Added
 #include <cuda_runtime.h>
-#include "stream_json_writer.h" // Added header
+#include "stream_json_writer.h" 
 
 #define CHECK(call) do { \
     cudaError_t err = (call); \
@@ -17,7 +18,7 @@
     } \
 } while(0)
 
-// ---------- vectorized STREAM kernels (float4) with strided loop ----------
+// ---------- vectorized STREAM kernels (float4) (保持不变) ----------
 __global__ void copy_f4_kernel(float4 *dst, const float4 *src, size_t nvec) {
     size_t idx = (size_t)blockIdx.x * blockDim.x + threadIdx.x;
     size_t stride = (size_t)blockDim.x * gridDim.x;
@@ -62,7 +63,7 @@ __global__ void triad_f4_kernel(float4 *dst, const float4 *a, const float4 *b, f
     }
 }
 
-// ---------- timing helper ----------
+// ---------- timing helper (保持不变) ----------
 double measure_kernel_ms_copy(float4 *A, float4 *B, size_t nvec, int blocks, int threads, int iters) {
     cudaEvent_t start, stop; CHECK(cudaEventCreate(&start)); CHECK(cudaEventCreate(&stop));
     float best = 1e30f;
@@ -131,25 +132,24 @@ double measure_kernel_ms_triad(float4 *dst, float4 *a, float4 *b, float scalar, 
     return (double)best;
 }
 
-// ---------- Reporting and JSON Output Wrapper ----------
-void process_result(const char* test_name, size_t bytes_moved, double ms, int device, const cudaDeviceProp& prop) {
+// ---------- Reporting Helper (修改为返回 JSON) ----------
+json process_result(const char* test_name, size_t bytes_moved, double ms, int device, const cudaDeviceProp& prop) {
     double seconds = ms * 1e-3;
     double bw_bytes_s = (double)bytes_moved / seconds;
     double bw_GB_s = bw_bytes_s / 1e9;   // decimal GB/s
     double bw_TB_s = bw_bytes_s / 1e12;  // decimal TB/s
     
     // Console Output
-    printf("Bytes moved : %llu bytes\n", (unsigned long long)bytes_moved);
-    printf("Elapsed     : %.3f ms\n", ms);
-    printf("BW          : %.2f GB/s  (%.4f TB/s)\n", bw_GB_s, bw_TB_s);
+    printf("  %-6s : Bytes moved = %llu | Time = %.3f ms | BW = %.2f GB/s (%.4f TB/s)\n", 
+            test_name, (unsigned long long)bytes_moved, ms, bw_GB_s, bw_TB_s);
 
-    // JSON Output
-    write_stream_result_json(std::string(test_name), 
-                             (double)bytes_moved, 
-                             ms, 
-                             bw_GB_s, 
-                             device, 
-                             prop);
+    // Generate JSON Object
+    return get_stream_result_json(std::string(test_name), 
+                                  (double)bytes_moved, 
+                                  ms, 
+                                  bw_GB_s, 
+                                  device, 
+                                  prop);
 }
 
 // ---------- main ----------
@@ -172,72 +172,85 @@ int main(int argc, char** argv) {
         if (opt == 't') tests = optarg;
     }
 
-    // --- Added: Get Device Properties for JSON ---
-    int device = 0;
-    cudaGetDevice(&device);
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, device);
-    // ---------------------------------------------
+    // 1. 获取设备数量
+    int device_count = 0;
+    CHECK(cudaGetDeviceCount(&device_count));
+    if (device_count == 0) {
+        fprintf(stderr, "No CUDA devices found.\n");
+        return 1;
+    }
 
     printf("GPU STREAM (B200-tuned) ?~@~T bytes=%.2f GB  iters=%d  tests=%s\n",
            (double)bytes / (1024.0*1024.0*1024.0), iters, tests);
+    printf("Found %d CUDA devices. Starting benchmark on all devices sequentially...\n", device_count);
 
-    // ensure bytes is multiple of sizeof(float4)
-    size_t bytes_per_vec = sizeof(float4);
-    unsigned long long nvec = bytes / bytes_per_vec;
-    if (nvec == 0) {
-        fprintf(stderr, "ERROR: bytes too small or not multiple of %zu\n", bytes_per_vec);
-        return 1;
+    // 2. 准备结果容器
+    std::vector<json> all_results;
+
+    // 3. 循环遍历所有 GPU
+    for (int device = 0; device < device_count; ++device) {
+        CHECK(cudaSetDevice(device));
+        cudaDeviceProp prop;
+        CHECK(cudaGetDeviceProperties(&prop, device));
+
+        printf("----------------------------------------------------------------\n");
+        printf("Benchmarking Device %d: %s (SMs=%d, CC=%d.%d)\n", device, prop.name, prop.multiProcessorCount, prop.major, prop.minor);
+
+        // ensure bytes is multiple of sizeof(float4)
+        size_t bytes_per_vec = sizeof(float4);
+        unsigned long long nvec = bytes / bytes_per_vec;
+        if (nvec == 0) {
+            fprintf(stderr, "ERROR: bytes too small or not multiple of %zu\n", bytes_per_vec);
+            return 1;
+        }
+        size_t bytes_actual = nvec * bytes_per_vec;
+
+        // allocate
+        float4 *d_A = NULL, *d_B = NULL, *d_C = NULL;
+        CHECK(cudaMalloc((void**)&d_A, bytes_actual));
+        CHECK(cudaMalloc((void**)&d_B, bytes_actual));
+        CHECK(cudaMalloc((void**)&d_C, bytes_actual));
+
+        // init (set to non-zero patterns)
+        CHECK(cudaMemset(d_A, 0x11, bytes_actual));
+        CHECK(cudaMemset(d_B, 0x22, bytes_actual));
+        CHECK(cudaMemset(d_C, 0x33, bytes_actual));
+
+        // launch config
+        int threads = 256;
+        int blocks = 65535; 
+
+        if (strchr(tests, 'C')) {
+            double ms = measure_kernel_ms_copy((float4*)d_A, (float4*)d_B, nvec, blocks, threads, iters);
+            size_t bytes_moved = (size_t)2 * (size_t)bytes_actual;
+            all_results.push_back(process_result("Copy", bytes_moved, ms, device, prop));
+        }
+
+        if (strchr(tests, 'S')) {
+            double ms = measure_kernel_ms_scale((float4*)d_B, (float4*)d_A, 3.14159f, nvec, blocks, threads, iters);
+            size_t bytes_moved = (size_t)2 * (size_t)bytes_actual;
+            all_results.push_back(process_result("Scale", bytes_moved, ms, device, prop));
+        }
+
+        if (strchr(tests, 'A')) {
+            double ms = measure_kernel_ms_add((float4*)d_C, (float4*)d_A, (float4*)d_B, nvec, blocks, threads, iters);
+            size_t bytes_moved = (size_t)3 * (size_t)bytes_actual;
+            all_results.push_back(process_result("Add", bytes_moved, ms, device, prop));
+        }
+
+        if (strchr(tests, 'T')) {
+            double ms = measure_kernel_ms_triad((float4*)d_C, (float4*)d_A, (float4*)d_B, 2.71828f, nvec, blocks, threads, iters);
+            size_t bytes_moved = (size_t)3 * (size_t)bytes_actual;
+            all_results.push_back(process_result("Triad", bytes_moved, ms, device, prop));
+        }
+
+        CHECK(cudaFree(d_A)); CHECK(cudaFree(d_B)); CHECK(cudaFree(d_C));
     }
-    size_t bytes_actual = nvec * bytes_per_vec;
 
-    // allocate
-    float4 *d_A = NULL, *d_B = NULL, *d_C = NULL;
-    CHECK(cudaMalloc((void**)&d_A, bytes_actual));
-    CHECK(cudaMalloc((void**)&d_B, bytes_actual));
-    CHECK(cudaMalloc((void**)&d_C, bytes_actual));
+    printf("----------------------------------------------------------------\n");
+    
+    // 4. 将所有结果一次性写入文件
+    save_all_stream_results(all_results, "stream_result.json");
 
-    // init (set to non-zero patterns)
-    CHECK(cudaMemset(d_A, 0x11, bytes_actual));
-    CHECK(cudaMemset(d_B, 0x22, bytes_actual));
-    CHECK(cudaMemset(d_C, 0x33, bytes_actual));
-
-    // launch config
-    int threads = 256;
-    int blocks = 65535; 
-    printf("nvec = %llu (float4 elems), threads=%d blocks=%d\n", (unsigned long long)nvec, threads, blocks);
-
-    // 删除旧的 stream_result.json 以防追加混淆 (可选，看你需要积累还是每次刷新)
-    remove("stream_result.json"); 
-
-    if (strchr(tests, 'C')) {
-        printf("\n==== COPY ====\n");
-        double ms = measure_kernel_ms_copy((float4*)d_A, (float4*)d_B, nvec, blocks, threads, iters);
-        size_t bytes_moved = (size_t)2 * (size_t)bytes_actual;
-        process_result("Copy", bytes_moved, ms, device, prop);
-    }
-
-    if (strchr(tests, 'S')) {
-        printf("\n==== SCALE ====\n");
-        double ms = measure_kernel_ms_scale((float4*)d_B, (float4*)d_A, 3.14159f, nvec, blocks, threads, iters);
-        size_t bytes_moved = (size_t)2 * (size_t)bytes_actual;
-        process_result("Scale", bytes_moved, ms, device, prop);
-    }
-
-    if (strchr(tests, 'A')) {
-        printf("\n==== ADD ====\n");
-        double ms = measure_kernel_ms_add((float4*)d_C, (float4*)d_A, (float4*)d_B, nvec, blocks, threads, iters);
-        size_t bytes_moved = (size_t)3 * (size_t)bytes_actual;
-        process_result("Add", bytes_moved, ms, device, prop);
-    }
-
-    if (strchr(tests, 'T')) {
-        printf("\n==== TRIAD ====\n");
-        double ms = measure_kernel_ms_triad((float4*)d_C, (float4*)d_A, (float4*)d_B, 2.71828f, nvec, blocks, threads, iters);
-        size_t bytes_moved = (size_t)3 * (size_t)bytes_actual;
-        process_result("Triad", bytes_moved, ms, device, prop);
-    }
-
-    CHECK(cudaFree(d_A)); CHECK(cudaFree(d_B)); CHECK(cudaFree(d_C));
     return 0;
 }
