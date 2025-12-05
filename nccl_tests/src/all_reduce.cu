@@ -548,7 +548,7 @@ testResult_t AllReduceRunTest(struct threadArgs* args, int root, ncclDataType_t 
   for(int i=0;i<args->nGpus;++i){
 	  gpu_ids.push_back(args->gpus[i]);
   }
-  nccl_write_json("all_reduce", root, gpu_ids, "nccl_allreduce.json", 0.90);
+  nccl_write_json("all_reduce", root, gpu_ids, "nccl_allreduce_result.json", 0.90);
 
   return testSuccess;
 }

@@ -357,7 +357,7 @@ testResult_t AlltoAllRunTest(struct threadArgs* args, int root, ncclDataType_t t
   for(int i=0; i<args->nGpus;++i){
 	  gpu_ids.push_back(args->gpus[i]);
   }
-  nccl_write_json("alltoall", root,gpu_ids, "nccl_alltoall.json", 0.70);
+  nccl_write_json("alltoall", root,gpu_ids, "nccl_alltoall_result.json", 0.70);
 
   return testSuccess;
 }
