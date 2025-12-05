@@ -23,7 +23,7 @@
 #include "inline_common.h"
 
 // === ADDED: JSON Writer Include ===
-#include "nvbandwidth_json_writer.h" 
+#include "nvbandwidth_json_writer.h"
 
 namespace opt = boost::program_options;
 
@@ -50,23 +50,23 @@ int worldSize;
 char localHostname[STRING_LENGTH];
 bool jsonOutput;
 Output *output;
-
 // Define testcases here
 std::vector<Testcase*> createTestcases() {
     // ... (Same list as original)
     return {
         new HostToDeviceCE(),
         new DeviceToHostCE(),
-        new HostToDeviceBidirCE(),
-        new DeviceToHostBidirCE(),
-        new DeviceToDeviceReadCE(),
-        new DeviceToDeviceWriteCE(),
+        //new HostToDeviceBidirCE(),
+        //new DeviceToHostBidirCE(),
+        //new DeviceToDeviceReadCE(),
+        //new DeviceToDeviceWriteCE(),
         new DeviceToDeviceBidirReadCE(),
         new DeviceToDeviceBidirWriteCE(),
         new AllToHostCE(),
-        new AllToHostBidirCE(),
+        //new AllToHostBidirCE(),
         new HostToAllCE(),
-        new HostToAllBidirCE(),
+        //new HostToAllBidirCE(),
+        /*
         new AllToOneWriteCE(),
         new AllToOneReadCE(),
         new OneToAllWriteCE(),
@@ -105,6 +105,7 @@ std::vector<Testcase*> createTestcases() {
         new MultinodeBroadcastAllToAllSM(),
         new MultinodeBisectWriteCE(),
 #endif
+*/
     };
 }
 
@@ -184,7 +185,7 @@ void runTestcase(std::vector<Testcase*> &testcases, const std::string &testcaseI
             int count;
             cudaGetDeviceCount(&count);
             for(int i=0; i<count; ++i) gpu_indices.push_back(i);
-            
+
             nvbandwidth_write_json(test->testKey(), gpu_indices);
         }
 
@@ -271,7 +272,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    cuInit(0);
+        cuInit(0);
     nvmlInit();
     cuDeviceGetCount(&deviceCount);
 
@@ -316,3 +317,4 @@ int main(int argc, char **argv) {
     output->printInfo();
     return 0;
 }
+

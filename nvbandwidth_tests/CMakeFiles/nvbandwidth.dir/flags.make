@@ -7,7 +7,7 @@ CUDA_DEFINES = -DBOOST_ALL_NO_LIB
 
 CUDA_INCLUDES = -I/usr/local/cuda/targets/x86_64-linux/include -I/home/nvbandwidth/.
 
-CUDA_FLAGS = -O3 -DNDEBUG --generate-code=arch=compute_52,code=[compute_52,sm_52] -std=c++17
+CUDA_FLAGS = -O3 -DNDEBUG --generate-code=arch=compute_80,code=[compute_80,sm_80] --generate-code=arch=compute_90,code=[compute_90,sm_90] --generate-code=arch=compute_100,code=[compute_100,sm_100] -std=c++17
 
 CXX_DEFINES = -DBOOST_ALL_NO_LIB
 

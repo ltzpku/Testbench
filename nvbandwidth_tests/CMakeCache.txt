@@ -22,6 +22,9 @@ Boost_INCLUDE_DIR:PATH=/usr/include
 
 Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE:STRING=/usr/lib/x86_64-linux-gnu/libboost_program_options.a
 
+//No help, variable specified on the command line.
+Boost_USE_STATIC_LIBS:UNINITIALIZED=ON
+
 //Path to a program.
 CMAKE_ADDR2LINE:FILEPATH=/usr/bin/addr2line
 
@@ -35,8 +38,8 @@ CMAKE_BUILD_TYPE:STRING=
 //Enable/Disable color output during build.
 CMAKE_COLOR_MAKEFILE:BOOL=ON
 
-//CUDA architectures
-CMAKE_CUDA_ARCHITECTURES:STRING=52
+//No help, variable specified on the command line.
+CMAKE_CUDA_ARCHITECTURES:UNINITIALIZED=80;90;100
 
 //CUDA compiler
 CMAKE_CUDA_COMPILER:FILEPATH=/usr/local/cuda/bin/nvcc
